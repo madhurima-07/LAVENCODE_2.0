@@ -1,0 +1,4 @@
+streamlit
+plotly
+fpdf
+streamlit-ace
