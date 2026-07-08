@@ -4,25 +4,26 @@ def analyze_code_text(code_text):
     functions = code_text.count("def ")
     classes = code_text.count("class ")
     
+    # ஆரம்ப ஸ்கோர் 100
     score = 100
     issues = []
     suggestions = []
     
-    # Simple Logic for Analysis
-    if num_lines < 2:
+    # லாஜிக் செக்கிங்
+    if num_lines < 3:
         score -= 20
         issues.append("Code is too short.")
         suggestions.append("Add more logic to your script.")
     
-    if "import " not in code_text and num_lines > 5:
-        score -= 10
-        issues.append("No imports found.")
-        suggestions.append("Ensure you import necessary libraries.")
+    if "print" not in code_text and "return" not in code_text:
+        score -= 30
+        issues.append("No output mechanism.")
+        suggestions.append("Add a print() or return statement.")
         
     if "def " not in code_text:
         score -= 15
         issues.append("No functions defined.")
-        suggestions.append("Encapsulate logic inside functions.")
+        suggestions.append("Encapsulate logic inside functions for better structure.")
 
     return {
         "score": max(0, score),
