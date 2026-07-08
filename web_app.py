@@ -53,8 +53,8 @@ st.markdown("""
     }
     
     .suggestion-box { 
-        background: rgba(254, 240, 138, 0.1); padding: 15px; border-left: 5px solid #facc15; 
-        border-radius: 8px; margin-bottom: 10px; color: #fef08a !important;
+        background: rgba(254, 240, 138, 0.1); padding: 15px; border-left: 5px solid #f43f5e; 
+        border-radius: 8px; margin-bottom: 10px; color: #fca5a5 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -133,8 +133,6 @@ with tab1:
                         output = f"Execution Error: {str(e)}"
                 
                 st.session_state.terminal_output = output if output.strip() else "Code executed successfully with no print output."
-                
-                # FIX: ரன் பண்ணும்போது அனாலிசிஸ் ரிப்போர்ட் வராத மாதிரி தடுத்துட்டோம்!
                 st.session_state.data = None  
                 st.session_state.target_name = "Direct_Input.py"
                 st.rerun()
@@ -144,15 +142,28 @@ with tab1:
     with btn_col2:
         if st.button("🚀 Analyze Code"):
             if st.session_state.editor_code.strip():
-                # FIX: அனலைஸ் பட்டன் அமுத்தும்போது மட்டும்தான் அனாலிசிஸ் நடக்கும்!
-                st.session_state.data = analyze_code_text(st.session_state.editor_code)
-                st.session_state.target_name = "Direct_Input.py"
+                try:
+                    # FIX: அனலைஸ் பண்றதுக்கு முன்னாடி கோடுல ஏதாச்சும் Syntax தப்பு இருக்கான்னு கம்பைல் பண்ணி செக் பண்றோம்!
+                    compile(st.session_state.editor_code, 'Direct_Input.py', 'exec')
+                    
+                    # தப்பு இல்லைனா வழக்கம் போல அனலைஸ் ஆகும்
+                    st.session_state.data = analyze_code_text(st.session_state.editor_code)
+                    st.session_state.target_name = "Direct_Input.py"
+                except SyntaxError as se:
+                    # FIX: தப்பு இருந்தா ஆட்டோமேட்டிக்கா ஸ்கோரைக் குறைச்சு, எர்ரரை பாக்ஸ்ல காட்டிடும்!
+                    st.session_state.data = {
+                        "score": 0,
+                        "metrics": {"lines": len(st.session_state.editor_code.split('\n')), "functions": 0, "classes": 0},
+                        "issues": [f"❌ Syntax Error Detected: {str(se)}"],
+                        "suggestions": ["⚠️ Please fix the incomplete or broken code lines before running the auditor analysis."]
+                    }
+                    st.session_state.target_name = "Direct_Input.py"
+                
                 st.session_state.terminal_output = None  
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
 
-    # ரன் பண்ணி அவுட்புட் வந்தா அது எடிட்டருக்கு கீழ உடனே காட்டும்!
     if st.session_state.terminal_output is not None:
         st.subheader("💻 Terminal Output")
         st.markdown(f"<div class='terminal-box'>{st.session_state.terminal_output}</div>", unsafe_allow_html=True)
@@ -173,7 +184,6 @@ with tab2:
 data = st.session_state.data
 target_name = st.session_state.target_name
 
-# FIX: அனாலிசிஸ் டேட்டா இருந்தா மட்டும்தான் (அனலைஸ் பட்டன் பிரஸ் பண்ணா மட்டும்) கீழ்பகுதி ஓபன் ஆகும்!
 if data is not None and st.session_state.terminal_output is None:
     st.write("")
     col1, col2, col3 = st.columns(3)
@@ -185,11 +195,13 @@ if data is not None and st.session_state.terminal_output is None:
     st.subheader("📊 Performance Analytics")
     score_left = max(0, 100 - data['score'])
     
+    # Red-Green pie chart based on score
+    chart_colors = ['#6366f1', '#f43f5e'] if data['score'] > 0 else ['#f43f5e', '#e2e8f0']
     fig = go.Figure(data=[go.Pie(
         labels=['Passed Quality Score', 'Flaws Detected Deductions'], 
         values=[data['score'], score_left],
         hole=.55,
-        marker=dict(colors=['#6366f1', '#f43f5e'], line=dict(color='#ffffff', width=2)),
+        marker=dict(colors=chart_colors, line=dict(color='#ffffff', width=2)),
         textinfo='percent',
         textfont=dict(size=20, color="#1e1b4b")
     )])
@@ -209,7 +221,7 @@ if data is not None and st.session_state.terminal_output is None:
         pdf.add_page()
         pdf.set_font("Helvetica", size=12)
         for line in report_text.split("\n"):
-            clean_line = line.replace("💜", "").replace("•", "-").replace("✨", "")
+            clean_line = line.replace("💜", "").replace("•", "-").replace("✨", "").replace("❌", "[Error]").replace("⚠️", "[Warning]")
             pdf.cell(200, 8, clean_line, ln=1)
         try:
             pdf_output = pdf.output()
