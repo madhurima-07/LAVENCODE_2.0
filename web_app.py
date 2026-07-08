@@ -115,7 +115,6 @@ with tab1:
     with btn_col2:
         if st.button("🚀 Analyze Code"):
             if code_content.strip():
-                # Correctly mapping the response and rerunning immediately
                 st.session_state.data = analyze_code_text(code_content)
                 st.session_state.target_name = "Direct_Input.py"
                 st.rerun()
@@ -153,7 +152,6 @@ if data is not None:
     st.subheader("📊 Performance Analytics")
     score_left = max(0, 100 - data['score'])
     
-    # Professional Clean Donut Chart with Premium Soft Muted Pastel palette
     fig = go.Figure(data=[go.Pie(
         labels=['Passed Quality Score', 'Flaws Detected Deductions'], 
         values=[data['score'], score_left],
@@ -183,17 +181,16 @@ if data is not None:
         report_text = f"LAVENCODE REPORT: {target_name}\nScore: {data['score']}/100\nLines: {data['metrics']['lines']}\n\nIssues Found:\n"
         for issue in data["issues"]: report_text += f"- {issue}\n"
         
-        # Fixed Log display terminal box
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
-        # PDF Generator & Export Action Button (High visibility contrast styling)
+        # FIX: Changed 'text=' to 'txt=' to support all FPDF versions safely
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", size=12)
         for line in report_text.split("\n"):
             clean_line = line.replace("💜", "").replace("•", "-").replace("✨", "")
-            pdf.cell(200, 8, text=clean_line, new_x="LMARGIN", new_y="NEXT")
-        pdf_bytes = pdf.output()
+            pdf.cell(200, 8, txt=clean_line, ln=1)
+        pdf_bytes = pdf.output(dest='S') if hasattr(pdf, 'output') and not isinstance(pdf.output(), bytes) else pdf.output()
         
         st.write("")
         st.download_button(label="📥 Export PDF Report", data=bytes(pdf_bytes), file_name=f"{target_name}_AuditReport.pdf", mime="application/pdf")
