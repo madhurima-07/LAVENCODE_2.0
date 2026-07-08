@@ -69,7 +69,8 @@ if 'data' not in st.session_state:
 if 'terminal_output' not in st.session_state:
     st.session_state.terminal_output = None
 if 'current_code' not in st.session_state:
-    st.session_state.current_code = ""  # எடிட்டர் இப்போ முழுசா பிளாங்க் (Blank)
+    # FIX: Default code eppo "Welcome to Lavencode" mattum thaan irukkum
+    st.session_state.current_code = "print('Welcome to Lavencode')"  
 
 tab1, tab2 = st.tabs(["📝 Code Editor", "📁 Upload File"])
 
@@ -97,7 +98,6 @@ with tab1:
                 f = io.StringIO()
                 with contextlib.redirect_stdout(f):
                     try:
-                        # input() பங்க்ஷன் இருந்தால் எர்ரர் வராமல் தடுக்க '4' என்ற வேல்யூவை தானாக எடுக்கும் மாற்று லாஜிக்
                         safe_code = "import builtins\ndef mock_input(prompt=''): return '4'\nbuiltins.input = mock_input\n" + st.session_state.current_code
                         exec(safe_code, {})
                         output = f.getvalue()
@@ -105,7 +105,7 @@ with tab1:
                         output = f"Execution Error: {str(e)}"
                 
                 st.session_state.terminal_output = output if output.strip() else "Code executed successfully with no print output."
-                st.session_state.data = None  # ரன் பண்ணும்போது பழைய அனாலிசிஸை மறைக்கும்
+                st.session_state.data = None  
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
@@ -115,7 +115,7 @@ with tab1:
             if st.session_state.current_code.strip():
                 st.session_state.data = analyze_code_text(st.session_state.current_code)
                 st.session_state.target_name = "Direct_Input.py"
-                st.session_state.terminal_output = None  # அனலைஸ் பண்ணும்போது டெர்மினலை மறைக்கும்
+                st.session_state.terminal_output = None  
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
