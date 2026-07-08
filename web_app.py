@@ -222,7 +222,7 @@ if data is not None and st.session_state.terminal_output is None:
         for issue in data["issues"]: report_text += f"- {issue}\n"
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
-        # FIX: PDF Generation Layout Upgraded with Source Code, Score, and Chart
+        # FIX: Unicode Encode Error-ஐ தடுக்க Safe Standard ASCII மாற்றுதல் லாஜிக்
         pdf = FPDF()
         pdf.add_page()
         
@@ -240,62 +240,61 @@ if data is not None and st.session_state.terminal_output is None:
         
         # Source Code Section
         pdf.set_font("Helvetica", style="B", size=12)
-        pdf.cell(200, 8, "📝 Analyzed Python Code:", ln=1)
+        pdf.cell(200, 8, "Code Analyzed:", ln=1)
         pdf.set_font("Courier", size=9)
         for line in st.session_state.editor_code.split("\n"):
-            clean_code_line = line.replace("\t", "    ")
+            # எமோஜி மற்றும் ஸ்பெஷல் கேரக்டர்களை PDF ஃபைலுக்குள் போகும் முன் சுத்தப்படுத்துகிறோம்
+            clean_code_line = line.replace("\t", "    ").encode('ascii', 'ignore').decode('ascii')
             pdf.cell(200, 5, clean_code_line, ln=1)
         pdf.ln(5)
         
         # Issues Section
         pdf.set_font("Helvetica", style="B", size=12)
-        pdf.cell(200, 8, "📋 Audit Logs & Issues:", ln=1)
+        pdf.cell(200, 8, "Audit Logs and Issues:", ln=1)
         pdf.set_font("Helvetica", size=10)
         for line in report_text.split("\n"):
             if "LAVENCODE REPORT" in line or "Score:" in line or "Lines:" in line:
                 continue
             clean_line = line.replace("💜", "").replace("•", "-").replace("✨", "").replace("❌", "[Error]").replace("⚠️", "[Warning]")
+            clean_line = clean_line.encode('ascii', 'ignore').decode('ascii')
             pdf.cell(200, 6, clean_line, ln=1)
         pdf.ln(5)
 
         # Suggestions Section
         pdf.set_font("Helvetica", style="B", size=12)
-        pdf.cell(200, 8, "💡 Bug Fix Suggestions:", ln=1)
+        pdf.cell(200, 8, "Bug Fix Suggestions:", ln=1)
         pdf.set_font("Helvetica", size=10)
         for sug in data["suggestions"]:
-            clean_sug = sug.replace("⚠️", "[Warning]").replace("✨", "")
+            clean_sug = sug.replace("⚠️", "[Warning]").replace("✨", "").encode('ascii', 'ignore').decode('ascii')
             pdf.multi_cell(0, 6, f"* {clean_sug}")
         pdf.ln(5)
             
-        # Chart Generation into PDF
+        # Chart Image Injection
         try:
             img_bytes = fig.to_image(format="png", width=500, height=300)
             pdf.set_font("Helvetica", style="B", size=12)
-            pdf.cell(200, 8, "📊 Performance Chart Analytics:", ln=1)
-            # Temp save chart to inject into fpdf
+            pdf.cell(200, 8, "Performance Chart Analytics:", ln=1)
             with open("temp_chart.png", "wb") as img_f:
                 img_f.write(img_bytes)
             pdf.image("temp_chart.png", x=15, w=130, h=78)
             if os.path.exists("temp_chart.png"):
-                os.remove("temp_chart.png")
+                os.remove(temp_chart.png)
         except Exception as chart_err:
-            # If kaleido is missing, show safe fallback text
             pdf.set_font("Helvetica", style="I", size=10)
             pdf.cell(200, 6, "[Chart image rendering requires 'pip install kaleido']", ln=1)
 
-        # Buffer Conversion for streaming
-        pdf_buffer = io.BytesIO()
-        pdf_string = pdf.output(dest='S')
-        if isinstance(pdf_string, str):
-            pdf_buffer.write(pdf_string.encode('latin1'))
-        else:
-            pdf_buffer.write(pdf_string)
-        pdf_buffer.seek(0)
-        
+        # FIX: பிடிஎஃப் அவுட்புட்டை 'output(dest='S')' லிருந்து மாற்றி நேரடி பைட்ஸ் அரேவாக மாற்றுதல்
+        try:
+            pdf_bytes = pdf.output()  # fpdf2 மற்றும் லேட்டஸ்ட் வெர்ஷன்களில் இது நேரடியாக bytes தரும்
+            if isinstance(pdf_bytes, str):
+                pdf_bytes = pdf_bytes.encode('latin1')
+        except:
+            pdf_bytes = bytes(pdf.output(dest='S'), 'latin1') if hasattr(pdf, 'output') else b""
+
         st.write("")
         st.download_button(
             label="📥 Export PDF Report", 
-            data=pdf_buffer, 
+            data=pdf_bytes, 
             file_name=f"{target_name}_AuditReport.pdf", 
             mime="application/pdf"
         )
