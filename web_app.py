@@ -2,17 +2,13 @@ import streamlit as st
 from analyzer import analyze_code_text, analyze_file
 from streamlit_ace import st_ace
 import plotly.graph_objects as go
+from fpdf import FPDF
 import io
 import sys
 import contextlib
 import os
 
 st.set_page_config(page_title="Lavencode 2.0 Pro", page_icon="💜", layout="centered")
-
-# --- 🎯 GOOGLE VERIFICATION CODE ADDED HERE ---
-# கூகுள் கொடுத்த முழு <meta ... /> டேக் கோடை கீழே உள்ள இரட்டை மேற்கோள் குறிக்குள் (" ") பேஸ்ட் செய்யவும்:
-st.markdown('<meta name="<meta name="google-site-verification" content="yDWMLGSPk3UGDWHUqxcJ48EpxvKAgcKt41vkZOY-588" />" />', unsafe_allow_html=True)
-# -----------------------------------------------
 
 # Custom UI Styling
 st.markdown("""
@@ -222,35 +218,85 @@ if data is not None and st.session_state.terminal_output is None:
     
     with col_logs:
         st.subheader("📋 System Audit Logs")
-        report_text = f"LAVENCODE AUDIT REPORT: {target_name}\n"
-        report_text += f"{'='*40}\n"
-        report_text += f"Audit Score : {data['score']}/100\n"
-        report_text += f"Total Lines : {data['metrics']['lines']}\n"
-        report_text += f"Functions   : {data['metrics']['functions']} | Classes: {data['metrics']['classes']}\n"
-        report_text += f"{'='*40}\n\n"
-        
-        report_text += "📝 ANALYZED CODE:\n"
-        report_text += f"{'-'*40}\n"
-        report_text += f"{st.session_state.editor_code}\n"
-        report_text += f"{'-'*40}\n\n"
-        
-        report_text += "📋 ISSUES DETECTED:\n"
-        for issue in data["issues"]: 
-            report_text += f"- {issue}\n"
-        report_text += "\n"
-        
-        report_text += "💡 SUGGESTIONS:\n"
-        for sug in data["suggestions"]: 
-            report_text += f"* {sug}\n"
-
+        report_text = f"LAVENCODE REPORT: {target_name}\nScore: {data['score']}/100\nLines: {data['metrics']['lines']}\n\nIssues Found:\n"
+        for issue in data["issues"]: report_text += f"- {issue}\n"
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
+        # FIX: Unicode Encode Error-ஐ தடுக்க Safe Standard ASCII மாற்றுதல் லாஜிக்
+        pdf = FPDF()
+        pdf.add_page()
+        
+        # Title Header
+        pdf.set_font("Helvetica", style="B", size=18)
+        pdf.cell(200, 10, "Lavencode 2.0 - Code Audit Report", ln=1, align="C")
+        pdf.ln(5)
+        
+        # Meta Data
+        pdf.set_font("Helvetica", size=10)
+        pdf.cell(200, 6, f"Target File: {target_name}", ln=1)
+        pdf.cell(200, 6, f"Audit Score: {data['score']}/100", ln=1)
+        pdf.cell(200, 6, f"Total Lines: {data['metrics']['lines']} | Functions: {data['metrics']['functions']} | Classes: {data['metrics']['classes']}", ln=1)
+        pdf.ln(5)
+        
+        # Source Code Section
+        pdf.set_font("Helvetica", style="B", size=12)
+        pdf.cell(200, 8, "Code Analyzed:", ln=1)
+        pdf.set_font("Courier", size=9)
+        for line in st.session_state.editor_code.split("\n"):
+            # எமோஜி மற்றும் ஸ்பெஷல் கேரக்டர்களை PDF ஃபைலுக்குள் போகும் முன் சுத்தப்படுத்துகிறோம்
+            clean_code_line = line.replace("\t", "    ").encode('ascii', 'ignore').decode('ascii')
+            pdf.cell(200, 5, clean_code_line, ln=1)
+        pdf.ln(5)
+        
+        # Issues Section
+        pdf.set_font("Helvetica", style="B", size=12)
+        pdf.cell(200, 8, "Audit Logs and Issues:", ln=1)
+        pdf.set_font("Helvetica", size=10)
+        for line in report_text.split("\n"):
+            if "LAVENCODE REPORT" in line or "Score:" in line or "Lines:" in line:
+                continue
+            clean_line = line.replace("💜", "").replace("•", "-").replace("✨", "").replace("❌", "[Error]").replace("⚠️", "[Warning]")
+            clean_line = clean_line.encode('ascii', 'ignore').decode('ascii')
+            pdf.cell(200, 6, clean_line, ln=1)
+        pdf.ln(5)
+
+        # Suggestions Section
+        pdf.set_font("Helvetica", style="B", size=12)
+        pdf.cell(200, 8, "Bug Fix Suggestions:", ln=1)
+        pdf.set_font("Helvetica", size=10)
+        for sug in data["suggestions"]:
+            clean_sug = sug.replace("⚠️", "[Warning]").replace("✨", "").encode('ascii', 'ignore').decode('ascii')
+            pdf.multi_cell(0, 6, f"* {clean_sug}")
+        pdf.ln(5)
+            
+        # Chart Image Injection
+        try:
+            img_bytes = fig.to_image(format="png", width=500, height=300)
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(200, 8, "Performance Chart Analytics:", ln=1)
+            with open("temp_chart.png", "wb") as img_f:
+                img_f.write(img_bytes)
+            pdf.image("temp_chart.png", x=15, w=130, h=78)
+            if os.path.exists("temp_chart.png"):
+                os.remove(temp_chart.png)
+        except Exception as chart_err:
+            pdf.set_font("Helvetica", style="I", size=10)
+            pdf.cell(200, 6, "[Chart image rendering requires 'pip install kaleido']", ln=1)
+
+        # FIX: பிடிஎஃப் அவுட்புட்டை 'output(dest='S')' லிருந்து மாற்றி நேரடி பைட்ஸ் அரேவாக மாற்றுதல்
+        try:
+            pdf_bytes = pdf.output()  # fpdf2 மற்றும் லேட்டஸ்ட் வெர்ஷன்களில் இது நேரடியாக bytes தரும்
+            if isinstance(pdf_bytes, str):
+                pdf_bytes = pdf_bytes.encode('latin1')
+        except:
+            pdf_bytes = bytes(pdf.output(dest='S'), 'latin1') if hasattr(pdf, 'output') else b""
+
         st.write("")
         st.download_button(
-            label="📥 Export Audit Report (.txt)", 
-            data=report_text, 
-            file_name=f"{target_name}_AuditReport.txt", 
-            mime="text/plain"
+            label="📥 Export PDF Report", 
+            data=pdf_bytes, 
+            file_name=f"{target_name}_AuditReport.pdf", 
+            mime="application/pdf"
         )
         
     with col_sug:
