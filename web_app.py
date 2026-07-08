@@ -52,8 +52,13 @@ st.markdown("""
         color: #110c24 !important; font-weight: 900 !important; border-radius: 12px; width: 100% !important;
     }
     
-    .suggestion-box { 
-        background: rgba(254, 240, 138, 0.1); padding: 15px; border-left: 5px solid #f43f5e; 
+    /* Dynamic Suggestion Box Styles */
+    .suggestion-box-green { 
+        background: rgba(34, 197, 94, 0.1); padding: 15px; border-left: 5px solid #22c55e; 
+        border-radius: 8px; margin-bottom: 10px; color: #86efac !important;
+    }
+    .suggestion-box-red { 
+        background: rgba(244, 63, 94, 0.1); padding: 15px; border-left: 5px solid #f43f5e; 
         border-radius: 8px; margin-bottom: 10px; color: #fca5a5 !important;
     }
     </style>
@@ -191,7 +196,6 @@ if data is not None and st.session_state.terminal_output is None:
     st.subheader("📊 Performance Analytics")
     score_left = max(0, 100 - data['score'])
     
-    # FIX: 'Passed Quality Score'-க்கு இப்போ சூப்பரான Light Blue (#38bdf8) கலர் செட் பண்ணியாச்சு!
     if data['score'] == 0:
         chart_colors = ['#e2e8f0', '#f43f5e']
     else:
@@ -235,5 +239,9 @@ if data is not None and st.session_state.terminal_output is None:
         
     with col_sug:
         st.subheader("💡 Bug Fix Suggestions")
+        
+        # FIX: கோடு தப்பா இருந்தா ரெட் கலர் பாக்ஸ், கரெக்ட்டா இருந்தா பழைய மாதிரி கிரீன் கலர் பாக்ஸ்!
+        box_class = "suggestion-box-red" if data['score'] == 0 else "suggestion-box-green"
+        
         for sug in data["suggestions"]:
-            st.markdown(f"<div class='suggestion-box'>{sug}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='{box_class}'>{sug}</div>", unsafe_allow_html=True)
