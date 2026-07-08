@@ -11,7 +11,7 @@ st.set_page_config(page_title="Lavencode 2.0 Pro", page_icon="💜", layout="cen
 
 # --- 🎯 GOOGLE VERIFICATION CODE ADDED HERE ---
 # கூகுள் கொடுத்த முழு <meta ... /> டேக் கோடை கீழே உள்ள இரட்டை மேற்கோள் குறிக்குள் (" ") பேஸ்ட் செய்யவும்:
-st.markdown('<meta name="google-site-verification" content="உங்க_கூகுள்_கோடு_இங்கே" />', unsafe_allow_html=True)
+st.markdown('<meta name="google-site-verification" content="<meta name="google-site-verification" content="yDWMLGSPk3UGDWHUqxcJ48EpxvKAgcKt41vkZOY-588" />" />', unsafe_allow_html=True)
 # -----------------------------------------------
 
 # Custom UI Styling
