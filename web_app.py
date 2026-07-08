@@ -10,69 +10,51 @@ import os
 
 st.set_page_config(page_title="Lavencode 2.0 Pro", page_icon="💜", layout="centered")
 
-# Custom UI Styling for Ultimate Text Visibility & Contrast
+# Custom UI Styling
 st.markdown("""
     <style>
-    /* Velvet Background */
     .stApp { 
         background: linear-gradient(135deg, #2e2a4f 0%, #1f1a3a 100%);
         color: #f8fafc !important;
-        animation: fadeIn 1.2s ease-in-out; 
     }
-    @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
-    
     h1, h2, h3, p, span, label, .stMarkdown { color: #f8fafc !important; font-family: 'Helvetica Neue', sans-serif; }
     
-    /* Metrics Style */
     div[data-testid="stMetric"] { 
         background: rgba(255, 255, 255, 0.08); 
-        backdrop-filter: blur(10px);
         padding: 20px; border-radius: 16px; 
         border: 1px solid rgba(255, 255, 255, 0.15);
     }
     div[data-testid="stMetricValue"] { font-size: 30px !important; font-weight: bold; color: #a78bfa !important; }
     
-    /* Main Action Buttons (Run & Analyze) */
     .stButton>button {
         background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
         color: white !important; border: none; border-radius: 12px;
-        padding: 14px 28px; font-weight: bold; width: 100%; transition: 0.3s;
-        font-size: 16px !important;
+        padding: 14px 28px; font-weight: bold; width: 100%;
     }
-    .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(167, 139, 250, 0.4); }
     
-    /* SYSTEM AUDIT LOG TEXT BOX */
     div[data-testid="stTextArea"] textarea {
         background-color: #110c24 !important;
         color: #39ff14 !important;
         font-family: 'Courier New', monospace !important;
-        font-size: 14px !important;
-        font-weight: bold !important;
     }
     
-    /* Terminal Console Box for Code Run Output */
     .terminal-box {
         background-color: #0f0a21;
         border-left: 5px solid #39ff14;
         color: #39ff14;
         font-family: 'Courier New', monospace;
-        padding: 15px;
-        border-radius: 8px;
-        margin-top: 15px;
+        padding: 15px; border-radius: 8px; margin-top: 15px;
         white-space: pre-wrap;
     }
     
-    /* PDF DOWNLOAD BUTTON */
     div.stDownloadButton>button {
         background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%) !important;
-        color: #110c24 !important; 
-        font-size: 16px !important;
-        font-weight: 900 !important;
-        border-radius: 12px !important;
-        border: 2px solid #ffffff !important;
-        padding: 12px 24px !important;
-        width: 100% !important;
-        box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4) !important;
+        color: #110c24 !important; font-weight: 900 !important; border-radius: 12px; width: 100% !important;
+    }
+    
+    .suggestion-box { 
+        background: rgba(254, 240, 138, 0.1); padding: 15px; border-left: 5px solid #facc15; 
+        border-radius: 8px; margin-bottom: 10px; color: #fef08a !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -87,7 +69,7 @@ if 'data' not in st.session_state:
 if 'terminal_output' not in st.session_state:
     st.session_state.terminal_output = None
 if 'current_code' not in st.session_state:
-    st.session_state.current_code = "num = 4\nif num % 2 == 0:\n    print('Even Number')\nelse:\n    print('Odd Number')"
+    st.session_state.current_code = ""  # எடிட்டர் இப்போ முழுசா பிளாங்க் (Blank)
 
 tab1, tab2 = st.tabs(["📝 Code Editor", "📁 Upload File"])
 
@@ -107,17 +89,15 @@ with tab1:
         st.session_state.current_code = code_content
     
     st.write("") 
-    
     btn_col1, btn_col2 = st.columns(2)
     
     with btn_col1:
         if st.button("▶️ Run Code"):
             if st.session_state.current_code.strip():
-                # Real Code Execution Box Logic
                 f = io.StringIO()
                 with contextlib.redirect_stdout(f):
                     try:
-                        # Streamlit web environment crash aagama iruka input-ah pass panrom
+                        # input() பங்க்ஷன் இருந்தால் எர்ரர் வராமல் தடுக்க '4' என்ற வேல்யூவை தானாக எடுக்கும் மாற்று லாஜிக்
                         safe_code = "import builtins\ndef mock_input(prompt=''): return '4'\nbuiltins.input = mock_input\n" + st.session_state.current_code
                         exec(safe_code, {})
                         output = f.getvalue()
@@ -125,6 +105,7 @@ with tab1:
                         output = f"Execution Error: {str(e)}"
                 
                 st.session_state.terminal_output = output if output.strip() else "Code executed successfully with no print output."
+                st.session_state.data = None  # ரன் பண்ணும்போது பழைய அனாலிசிஸை மறைக்கும்
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
@@ -134,12 +115,11 @@ with tab1:
             if st.session_state.current_code.strip():
                 st.session_state.data = analyze_code_text(st.session_state.current_code)
                 st.session_state.target_name = "Direct_Input.py"
-                st.session_state.terminal_output = None  # Clear terminal when doing full audit
+                st.session_state.terminal_output = None  # அனலைஸ் பண்ணும்போது டெர்மினலை மறைக்கும்
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
 
-    # FIX: Run Code kudutha inga terminal screen output mattum thaan kaatum!
     if st.session_state.terminal_output is not None:
         st.subheader("💻 Terminal Output")
         st.markdown(f"<div class='terminal-box'>{st.session_state.terminal_output}</div>", unsafe_allow_html=True)
@@ -160,7 +140,6 @@ with tab2:
 data = st.session_state.data
 target_name = st.session_state.target_name
 
-# Dashboard & Analytics display when "Analyze Code" is pressed
 if data is not None and st.session_state.terminal_output is None:
     st.write("")
     col1, col2, col3 = st.columns(3)
