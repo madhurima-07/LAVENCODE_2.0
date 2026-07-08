@@ -32,6 +32,7 @@ st.markdown("""
         padding: 14px 28px; font-weight: bold; width: 100%;
     }
     
+    /* Input & Logs Text Area Styling */
     div[data-testid="stTextArea"] textarea {
         background-color: #110c24 !important;
         color: #39ff14 !important;
@@ -71,13 +72,14 @@ if 'terminal_output' not in st.session_state:
     st.session_state.terminal_output = None
 if 'editor_code' not in st.session_state:
     st.session_state.editor_code = "print('Welcome to Lavencode')"
+if 'user_inputs' not in st.session_state:
+    st.session_state.user_inputs = ""
 
 tab1, tab2 = st.tabs(["📝 Code Editor", "📁 Upload File"])
 
 with tab1:
     st.write("Write or paste your Python code here:")
     
-    # எடிட்டர் ரன் ஆகும்போது லேட்டஸ்ட் கோடை மட்டும் எடுக்கும்
     code_content = st_ace(
         value=st.session_state.editor_code,
         language="python",
@@ -85,27 +87,49 @@ with tab1:
         height=250,
         font_size=14,
         key="ace_editor_stable",
-        auto_update=True  # FIX: எடிட்டர் டைப்பிங்கை உடனே கேட்ச் பண்ணும்
+        auto_update=True
     )
     
+    if code_content != st.session_state.editor_code:
+        st.session_state.editor_code = code_content
+        st.session_state.data = None
+        st.session_state.terminal_output = None
+        st.rerun()
+    
+    # FIX: யூசர் தங்களுக்கு தேவையான இன்புட்டுகளை டைப் செய்ய ஒரு பாக்ஸ்!
+    st.write("")
+    user_input_data = st.text_area(
+        "⌨️ Input Console (Enter each input in a new line for input() functions):",
+        value=st.session_state.user_inputs,
+        placeholder="Example:\n5\n4",
+        height=100
+    )
+    st.session_state.user_inputs = user_input_data
+
     st.write("") 
     btn_col1, btn_col2 = st.columns(2)
     
     with btn_col1:
         if st.button("▶️ Run Code"):
-            if code_content.strip():
-                st.session_state.editor_code = code_content
+            if st.session_state.editor_code.strip():
                 f = io.StringIO()
                 with contextlib.redirect_stdout(f):
                     try:
-                        # input() பங்க்ஷனை மார்க் செய்ய '4' மற்றும் '5' வேல்யூக்களை ஆட்டோமேட்டிக்கா பாஸ் செய்யும் லாஜிக்
-                        safe_code = (
-                            "import builtins\n"
-                            "inputs = ['5', '4']\n"
-                            "def mock_input(prompt=''): return inputs.pop() if inputs else '0'\n"
-                            "builtins.input = mock_input\n" + code_content
-                        )
-                        exec(safe_code, {})
+                        # FIX: யூசர் டைப் பண்ண இன்புட்டுகளை லைன் பை லைனாக எடுத்து input()-க்கு பாஸ் பண்ணும் மாஸ் லாஜிக்!
+                        input_lines = st.session_state.user_inputs.split('\n')
+                        # ரிவர்ஸ் பண்றோம் ஏன்னா பாப் (pop) பண்ணும்போது ஃபர்ஸ்ட் லைன் ஃபர்ஸ்ட் வரும்
+                        input_lines.reverse() 
+                        
+                        import builtins
+                        def custom_input(prompt=''):
+                            if input_lines:
+                                return input_lines.pop()
+                            return ''
+                        
+                        builtins.input = custom_input
+                        
+                        # கோடை எக்ஸிகியூட் செய்கிறோம்
+                        exec(st.session_state.editor_code, {"st": st})
                         output = f.getvalue()
                     except Exception as e:
                         output = f"Execution Error: {str(e)}"
@@ -118,11 +142,8 @@ with tab1:
                 
     with btn_col2:
         if st.button("🚀 Analyze Code"):
-            if code_content.strip():
-                st.session_state.editor_code = code_content
-                
-                # FIX: இப்போ நீங்க டைப் பண்ண லேட்டஸ்ட் கோடு நேரடியா அனலைசருக்குப் போகும்!
-                st.session_state.data = analyze_code_text(code_content)
+            if st.session_state.editor_code.strip():
+                st.session_state.data = analyze_code_text(st.session_state.editor_code)
                 st.session_state.target_name = "Direct_Input.py"
                 st.session_state.terminal_output = None  
                 st.rerun()
@@ -149,7 +170,6 @@ with tab2:
 data = st.session_state.data
 target_name = st.session_state.target_name
 
-# அனாலிசிஸ் டேட்டா மாறும்போது மட்டும் கீழ்பகுதி அப்டேட் ஆகும்
 if data is not None and st.session_state.terminal_output is None:
     st.write("")
     col1, col2, col3 = st.columns(3)
