@@ -29,7 +29,7 @@ def analyze_code_text(code_string, filename="Direct_Input.py"):
             suggestions.append(f"💡 Line {i}: Replace 'raw_input()' with 'input()' for Python 3.")
 
         # Check 3: Missing docstring
-        if stripped.startswith("def ") and i < total_lines:
+        if stripped.startswith("def "):
             next_line = lines[i].strip() if i < len(lines) else ""
             if not (next_line.startswith('"""') or next_line.startswith("'''")):
                 issues.append(f"Line {i}: Function missing docstring")
