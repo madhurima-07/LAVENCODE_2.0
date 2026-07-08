@@ -222,26 +222,33 @@ if data is not None and st.session_state.terminal_output is None:
         for issue in data["issues"]: report_text += f"- {issue}\n"
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
+        # FIX: FPDF ஃபைல் கரப்ட் ஆகாம இருக்க பக்காவான பஃபர் ரைட்டிங் லாஜிக்!
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", size=12)
         for line in report_text.split("\n"):
             clean_line = line.replace("💜", "").replace("•", "-").replace("✨", "").replace("❌", "[Error]").replace("⚠️", "[Warning]")
             pdf.cell(200, 8, clean_line, ln=1)
-        try:
-            pdf_output = pdf.output()
-            pdf_bytes = pdf_output.encode('latin1') if isinstance(pdf_output, str) else bytes(pdf_output)
-        except:
-            pdf_bytes = pdf.output(dest='S')
-            if isinstance(pdf_bytes, str): pdf_bytes = pdf_bytes.encode('latin1')
+            
+        # இங்க தான் பஃபர் மூலமா பைனரி ஸ்ட்ரீமா மாத்தி டவுன்லோட் பண்றோம், சோ ஃபைல் செம்மையா ஓபன் ஆகும்
+        pdf_buffer = io.BytesIO()
+        pdf_string = pdf.output(dest='S')
+        if isinstance(pdf_string, str):
+            pdf_buffer.write(pdf_string.encode('latin1'))
+        else:
+            pdf_buffer.write(pdf_string)
+        pdf_buffer.seek(0)
+        
         st.write("")
-        st.download_button(label="📥 Export PDF Report", data=pdf_bytes, file_name=f"{target_name}_AuditReport.pdf", mime="application/pdf")
+        st.download_button(
+            label="📥 Export PDF Report", 
+            data=pdf_buffer, 
+            file_name=f"{target_name}_AuditReport.pdf", 
+            mime="application/pdf"
+        )
         
     with col_sug:
         st.subheader("💡 Bug Fix Suggestions")
-        
-        # FIX: கோடு தப்பா இருந்தா ரெட் கலர் பாக்ஸ், கரெக்ட்டா இருந்தா பழைய மாதிரி கிரீன் கலர் பாக்ஸ்!
         box_class = "suggestion-box-red" if data['score'] == 0 else "suggestion-box-green"
-        
         for sug in data["suggestions"]:
             st.markdown(f"<div class='{box_class}'>{sug}</div>", unsafe_allow_html=True)
