@@ -7,22 +7,22 @@ import os
 
 st.set_page_config(page_title="Lavencode 2.0 Pro", page_icon="💜", layout="centered")
 
-# Dark Background with Red/Blue Highlights
+# Custom UI Styling
 st.markdown("""
     <style>
-    .stApp { background: linear-gradient(135deg, #1f1a3a 0%, #0f0a1a 100%); color: #ffffff !important; }
-    h1, h2, h3, p, span, label, .stMarkdown { color: #ffffff !important; font-family: 'Segoe UI', sans-serif; }
+    .stApp { background: linear-gradient(135deg, #2e2a4f 0%, #1f1a3a 100%); color: #f8fafc !important; }
+    h1, h2, h3, p, span, label, .stMarkdown { color: #f8fafc !important; font-family: 'Helvetica Neue', sans-serif; }
     
-    div[data-testid="stMetric"] { background: #2e2a4f; border: 1px solid #ef4444; border-radius: 12px; padding: 15px; }
-    div[data-testid="stMetricValue"] { color: #ef4444 !important; font-weight: bold; }
+    div[data-testid="stMetric"] { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.15); }
+    div[data-testid="stMetricValue"] { font-size: 24px !important; font-weight: bold; color: #a78bfa !important; }
     
-    .stButton>button { background: #ef4444 !important; color: white !important; border: none; border-radius: 10px; padding: 12px; width: 100%; font-weight: bold; }
+    .stButton>button { background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); color: white !important; border: none; border-radius: 12px; padding: 12px; width: 100%; font-weight: bold; }
     
-    div[data-testid="stTextArea"] textarea { background-color: #000000 !important; color: #ff3333 !important; font-family: monospace !important; border: 2px solid #ef4444 !important; }
+    div[data-testid="stTextArea"] textarea { background-color: #110c24 !important; color: #39ff14 !important; font-family: monospace !important; border: 2px solid #7c3aed !important; border-radius: 10px !important; }
     
-    div.stDownloadButton>button { background: #ef4444 !important; color: white !important; font-weight: bold !important; border-radius: 10px !important; width: 100% !important; }
+    div.stDownloadButton>button { background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%) !important; color: #110c24 !important; font-weight: 900 !important; border-radius: 10px !important; width: 100% !important; }
     
-    .suggestion-box { background: rgba(239, 68, 68, 0.1); padding: 12px; border-left: 4px solid #ef4444; border-radius: 6px; margin-bottom: 8px; color: #ffcccc !important; font-size: 14px; }
+    .suggestion-box { background: rgba(254, 240, 138, 0.1); padding: 12px; border-left: 4px solid #facc15; border-radius: 6px; margin-bottom: 8px; color: #fef08a !important; font-size: 14px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -38,7 +38,7 @@ with tab1:
     code_content = st_ace(value="def hello_world():\n    print('Welcome')", language="python", theme="monokai", height=200)
     btn1, btn2 = st.columns(2)
     with btn1:
-        if st.button("▶️ Run"): st.session_state.execution_status = "✨ Code Executed!"
+        if st.button("▶️ Run"): st.session_state.execution_status = "✨ Executed!"
     with btn2:
         if st.button("🚀 Analyze"): st.session_state.data = analyze_code_text(code_content)
     if st.session_state.execution_status:
@@ -62,22 +62,10 @@ if st.session_state.data is not None:
     c3.metric("Blocks", f"{data['metrics']['functions']}")
     
     st.subheader("📊 Analytics")
-    # Chart with Blue & Red
-    fig = go.Figure(data=[go.Pie(
-        labels=['Passed', 'Deductions'], 
-        values=[data['score'], 100-data['score']], 
-        marker=dict(colors=['#3b82f6', '#ef4444']), 
-        hole=.55
-    )])
-    
-    fig.update_layout(
-        margin=dict(t=10, b=10, l=10, r=10), 
-        height=250, 
-        autosize=True, 
-        paper_bgcolor='rgba(0,0,0,0)', 
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white')
-    )
+    fig = go.Figure(data=[go.Pie(labels=['Passed', 'Deductions'], values=[data['score'], 100-data['score']], hole=.55)])
+    # Mobile optimized layout
+    fig.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=250, autosize=True, 
+                      legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5))
     st.plotly_chart(fig, use_container_width=True)
     
     st.subheader("📋 Logs")
