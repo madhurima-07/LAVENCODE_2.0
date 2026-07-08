@@ -77,32 +77,34 @@ tab1, tab2 = st.tabs(["📝 Code Editor", "📁 Upload File"])
 with tab1:
     st.write("Write or paste your Python code here:")
     
+    # எடிட்டர் ரன் ஆகும்போது லேட்டஸ்ட் கோடை மட்டும் எடுக்கும்
     code_content = st_ace(
         value=st.session_state.editor_code,
         language="python",
         theme="monokai",
         height=250,
         font_size=14,
-        key="ace_editor_stable"
+        key="ace_editor_stable",
+        auto_update=True  # FIX: எடிட்டர் டைப்பிங்கை உடனே கேட்ச் பண்ணும்
     )
-    
-    # FIX: நீங்க எடிட்டர்ல கோடை மாற்றினால், பழைய அவுட்புட்டை உடனே கிளியர் செய்திடும் லாஜிக்
-    if code_content != st.session_state.editor_code:
-        st.session_state.editor_code = code_content
-        st.session_state.data = None
-        st.session_state.terminal_output = None
-        st.rerun()
     
     st.write("") 
     btn_col1, btn_col2 = st.columns(2)
     
     with btn_col1:
         if st.button("▶️ Run Code"):
-            if st.session_state.editor_code.strip():
+            if code_content.strip():
+                st.session_state.editor_code = code_content
                 f = io.StringIO()
                 with contextlib.redirect_stdout(f):
                     try:
-                        safe_code = "import builtins\ndef mock_input(prompt=''): return '4'\nbuiltins.input = mock_input\n" + st.session_state.editor_code
+                        # input() பங்க்ஷனை மார்க் செய்ய '4' மற்றும் '5' வேல்யூக்களை ஆட்டோமேட்டிக்கா பாஸ் செய்யும் லாஜிக்
+                        safe_code = (
+                            "import builtins\n"
+                            "inputs = ['5', '4']\n"
+                            "def mock_input(prompt=''): return inputs.pop() if inputs else '0'\n"
+                            "builtins.input = mock_input\n" + code_content
+                        )
                         exec(safe_code, {})
                         output = f.getvalue()
                     except Exception as e:
@@ -116,8 +118,11 @@ with tab1:
                 
     with btn_col2:
         if st.button("🚀 Analyze Code"):
-            if st.session_state.editor_code.strip():
-                st.session_state.data = analyze_code_text(st.session_state.editor_code)
+            if code_content.strip():
+                st.session_state.editor_code = code_content
+                
+                # FIX: இப்போ நீங்க டைப் பண்ண லேட்டஸ்ட் கோடு நேரடியா அனலைசருக்குப் போகும்!
+                st.session_state.data = analyze_code_text(code_content)
                 st.session_state.target_name = "Direct_Input.py"
                 st.session_state.terminal_output = None  
                 st.rerun()
@@ -144,7 +149,7 @@ with tab2:
 data = st.session_state.data
 target_name = st.session_state.target_name
 
-# இப்போ டேட்டா இருந்தா மட்டும்தான் அனாலிசிஸ் செக்ஷன் கீழே ஓபன் ஆகும்!
+# அனாலிசிஸ் டேட்டா மாறும்போது மட்டும் கீழ்பகுதி அப்டேட் ஆகும்
 if data is not None and st.session_state.terminal_output is None:
     st.write("")
     col1, col2, col3 = st.columns(3)
