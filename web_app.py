@@ -9,6 +9,11 @@ import os
 
 st.set_page_config(page_title="Lavencode 2.0 Pro", page_icon="💜", layout="centered")
 
+# --- 🎯 GOOGLE VERIFICATION CODE ADDED HERE ---
+# கூகுள் கொடுத்த முழு <meta ... /> டேக் கோடை கீழே உள்ள இரட்டை மேற்கோள் குறிக்குள் (" ") பேஸ்ட் செய்யவும்:
+st.markdown('<meta name="google-site-verification" content="உங்க_கூகுள்_கோடு_இங்கே" />', unsafe_allow_html=True)
+# -----------------------------------------------
+
 # Custom UI Styling
 st.markdown("""
     <style>
@@ -241,7 +246,6 @@ if data is not None and st.session_state.terminal_output is None:
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
         st.write("")
-        # FIX: எந்த எக்ஸ்ட்ரா மாடியூலும் இல்லாம பக்காவா டெக்ஸ்ட்டா மாத்தி டவுன்லோட் பண்றோம்!
         st.download_button(
             label="📥 Export Audit Report (.txt)", 
             data=report_text, 
