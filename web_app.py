@@ -1,6 +1,4 @@
 import streamlit as st
-st.write("google-site-verification: google5671e1b9d385f622.html")
-st.stop()
 from analyzer import analyze_code_text, analyze_file
 from streamlit_ace import st_ace
 import plotly.graph_objects as go
