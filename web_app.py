@@ -9,10 +9,6 @@ import os
 
 st.set_page_config(page_title="Lavencode 2.0 Pro", page_icon="💜", layout="centered")
 
-# --- 🎯 GOOGLE VERIFICATION CODE ADDED HERE ---
-st.markdown('<meta name="google-site-verification" content="yDWMLGSPk3UGDWHUqxcJ48EpxvKAgcKt41vkZOY-588" />', unsafe_allow_html=True)
-# -----------------------------------------------
-
 # Custom UI Styling
 st.markdown("""
     <style>
@@ -257,3 +253,8 @@ if data is not None and st.session_state.terminal_output is None:
         box_class = "suggestion-box-red" if data['score'] == 0 else "suggestion-box-green"
         for sug in data["suggestions"]:
             st.markdown(f"<div class='{box_class}'>{sug}</div>", unsafe_allow_html=True)
+
+# --- 🎯 GOOGLE VERIFICATION CODE BYPASSED HERE ---
+if "google" in st.query_params:
+    st.write("google-site-verification: googlea1b2c3d4e5f6.html") 
+    # ⬆️ மேல இருக்குற வரில "googlea1b2c3d4e5f6.html"-க்கு பதிலா உங்க கூகுள் ஃபைல் பெயரை மட்டும் மாத்திக்கோங்க!
