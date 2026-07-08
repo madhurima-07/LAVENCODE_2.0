@@ -32,7 +32,6 @@ st.markdown("""
         padding: 14px 28px; font-weight: bold; width: 100%;
     }
     
-    /* Input & Logs Text Area Styling */
     div[data-testid="stTextArea"] textarea {
         background-color: #110c24 !important;
         color: #39ff14 !important;
@@ -96,15 +95,18 @@ with tab1:
         st.session_state.terminal_output = None
         st.rerun()
     
-    # FIX: யூசர் தங்களுக்கு தேவையான இன்புட்டுகளை டைப் செய்ய ஒரு பாக்ஸ்!
-    st.write("")
-    user_input_data = st.text_area(
-        "⌨️ Input Console (Enter each input in a new line for input() functions):",
-        value=st.session_state.user_inputs,
-        placeholder="Example:\n5\n4",
-        height=100
-    )
-    st.session_state.user_inputs = user_input_data
+    # FIX: கோடுக்குள்ள "input(" இருந்தா மட்டும்தான் இந்த இன்புட் பாக்ஸ் வெளில காட்டும்!
+    if "input(" in code_content:
+        st.write("")
+        user_input_data = st.text_area(
+            "⌨️ Input Console (Enter each input in a new line):",
+            value=st.session_state.user_inputs,
+            placeholder="Example:\n5\n4",
+            height=100
+        )
+        st.session_state.user_inputs = user_input_data
+    else:
+        st.session_state.user_inputs = ""
 
     st.write("") 
     btn_col1, btn_col2 = st.columns(2)
@@ -115,9 +117,7 @@ with tab1:
                 f = io.StringIO()
                 with contextlib.redirect_stdout(f):
                     try:
-                        # FIX: யூசர் டைப் பண்ண இன்புட்டுகளை லைன் பை லைனாக எடுத்து input()-க்கு பாஸ் பண்ணும் மாஸ் லாஜிக்!
                         input_lines = st.session_state.user_inputs.split('\n')
-                        # ரிவர்ஸ் பண்றோம் ஏன்னா பாப் (pop) பண்ணும்போது ஃபர்ஸ்ட் லைன் ஃபர்ஸ்ட் வரும்
                         input_lines.reverse() 
                         
                         import builtins
@@ -128,7 +128,6 @@ with tab1:
                         
                         builtins.input = custom_input
                         
-                        # கோடை எக்ஸிகியூட் செய்கிறோம்
                         exec(st.session_state.editor_code, {"st": st})
                         output = f.getvalue()
                     except Exception as e:
