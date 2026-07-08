@@ -222,15 +222,68 @@ if data is not None and st.session_state.terminal_output is None:
         for issue in data["issues"]: report_text += f"- {issue}\n"
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
-        # FIX: FPDF ஃபைல் கரப்ட் ஆகாம இருக்க பக்காவான பஃபர் ரைட்டிங் லாஜிக்!
+        # FIX: PDF Generation Layout Upgraded with Source Code, Score, and Chart
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Helvetica", size=12)
+        
+        # Title Header
+        pdf.set_font("Helvetica", style="B", size=18)
+        pdf.cell(200, 10, "Lavencode 2.0 - Code Audit Report", ln=1, align="C")
+        pdf.ln(5)
+        
+        # Meta Data
+        pdf.set_font("Helvetica", size=10)
+        pdf.cell(200, 6, f"Target File: {target_name}", ln=1)
+        pdf.cell(200, 6, f"Audit Score: {data['score']}/100", ln=1)
+        pdf.cell(200, 6, f"Total Lines: {data['metrics']['lines']} | Functions: {data['metrics']['functions']} | Classes: {data['metrics']['classes']}", ln=1)
+        pdf.ln(5)
+        
+        # Source Code Section
+        pdf.set_font("Helvetica", style="B", size=12)
+        pdf.cell(200, 8, "📝 Analyzed Python Code:", ln=1)
+        pdf.set_font("Courier", size=9)
+        for line in st.session_state.editor_code.split("\n"):
+            clean_code_line = line.replace("\t", "    ")
+            pdf.cell(200, 5, clean_code_line, ln=1)
+        pdf.ln(5)
+        
+        # Issues Section
+        pdf.set_font("Helvetica", style="B", size=12)
+        pdf.cell(200, 8, "📋 Audit Logs & Issues:", ln=1)
+        pdf.set_font("Helvetica", size=10)
         for line in report_text.split("\n"):
+            if "LAVENCODE REPORT" in line or "Score:" in line or "Lines:" in line:
+                continue
             clean_line = line.replace("💜", "").replace("•", "-").replace("✨", "").replace("❌", "[Error]").replace("⚠️", "[Warning]")
-            pdf.cell(200, 8, clean_line, ln=1)
+            pdf.cell(200, 6, clean_line, ln=1)
+        pdf.ln(5)
+
+        # Suggestions Section
+        pdf.set_font("Helvetica", style="B", size=12)
+        pdf.cell(200, 8, "💡 Bug Fix Suggestions:", ln=1)
+        pdf.set_font("Helvetica", size=10)
+        for sug in data["suggestions"]:
+            clean_sug = sug.replace("⚠️", "[Warning]").replace("✨", "")
+            pdf.multi_cell(0, 6, f"* {clean_sug}")
+        pdf.ln(5)
             
-        # இங்க தான் பஃபர் மூலமா பைனரி ஸ்ட்ரீமா மாத்தி டவுன்லோட் பண்றோம், சோ ஃபைல் செம்மையா ஓபன் ஆகும்
+        # Chart Generation into PDF
+        try:
+            img_bytes = fig.to_image(format="png", width=500, height=300)
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(200, 8, "📊 Performance Chart Analytics:", ln=1)
+            # Temp save chart to inject into fpdf
+            with open("temp_chart.png", "wb") as img_f:
+                img_f.write(img_bytes)
+            pdf.image("temp_chart.png", x=15, w=130, h=78)
+            if os.path.exists("temp_chart.png"):
+                os.remove("temp_chart.png")
+        except Exception as chart_err:
+            # If kaleido is missing, show safe fallback text
+            pdf.set_font("Helvetica", style="I", size=10)
+            pdf.cell(200, 6, "[Chart image rendering requires 'pip install kaleido']", ln=1)
+
+        # Buffer Conversion for streaming
         pdf_buffer = io.BytesIO()
         pdf_string = pdf.output(dest='S')
         if isinstance(pdf_string, str):
