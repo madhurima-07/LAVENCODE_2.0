@@ -69,36 +69,36 @@ if 'data' not in st.session_state:
 if 'terminal_output' not in st.session_state:
     st.session_state.terminal_output = None
 if 'current_code' not in st.session_state:
-    # FIX: Default code eppo "Welcome to Lavencode" mattum thaan irukkum
-    st.session_state.current_code = "print('Welcome to Lavencode')"  
+    st.session_state.current_code = "print('Welcome to Lavencode')"
+if 'editor_counter' not in st.session_state:
+    st.session_state.editor_counter = 0
 
 tab1, tab2 = st.tabs(["📝 Code Editor", "📁 Upload File"])
 
 with tab1:
     st.write("Write or paste your Python code here:")
     
+    # FIX: Dynamic key (editor_counter) moolama state lock-ah udaikirom
     code_content = st_ace(
         value=st.session_state.current_code,
         language="python",
         theme="monokai",
         height=250,
         font_size=14,
-        key="ace_editor_stable"
+        key=f"ace_editor_{st.session_state.editor_counter}"
     )
-    
-    if code_content != st.session_state.current_code:
-        st.session_state.current_code = code_content
     
     st.write("") 
     btn_col1, btn_col2 = st.columns(2)
     
     with btn_col1:
         if st.button("▶️ Run Code"):
-            if st.session_state.current_code.strip():
+            if code_content.strip():
+                st.session_state.current_code = code_content
                 f = io.StringIO()
                 with contextlib.redirect_stdout(f):
                     try:
-                        safe_code = "import builtins\ndef mock_input(prompt=''): return '4'\nbuiltins.input = mock_input\n" + st.session_state.current_code
+                        safe_code = "import builtins\ndef mock_input(prompt=''): return '4'\nbuiltins.input = mock_input\n" + code_content
                         exec(safe_code, {})
                         output = f.getvalue()
                     except Exception as e:
@@ -106,16 +106,19 @@ with tab1:
                 
                 st.session_state.terminal_output = output if output.strip() else "Code executed successfully with no print output."
                 st.session_state.data = None  
+                st.session_state.editor_counter += 1  # Force refresh editor state
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
                 
     with btn_col2:
         if st.button("🚀 Analyze Code"):
-            if st.session_state.current_code.strip():
-                st.session_state.data = analyze_code_text(st.session_state.current_code)
+            if code_content.strip():
+                st.session_state.current_code = code_content
+                st.session_state.data = analyze_code_text(code_content)
                 st.session_state.target_name = "Direct_Input.py"
                 st.session_state.terminal_output = None  
+                st.session_state.editor_counter += 1  # Force refresh editor state
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
