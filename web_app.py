@@ -63,29 +63,29 @@ st.title("💜 Lavencode 2.0")
 st.caption("Advanced Code Auditor with AI Insights & Analytics")
 st.write("---")
 
+# Session State Initialization
 if 'data' not in st.session_state:
     st.session_state.data = None
     st.session_state.target_name = ""
 if 'terminal_output' not in st.session_state:
     st.session_state.terminal_output = None
-if 'current_code' not in st.session_state:
-    st.session_state.current_code = "print('Welcome to Lavencode')"
-if 'editor_counter' not in st.session_state:
-    st.session_state.editor_counter = 0
+if 'editor_code' not in st.session_state:
+    # முதன்முறை ஆப் ஓபன் ஆகும்போது மட்டும் இந்த டீஃபால்ட் கோடு இருக்கும்
+    st.session_state.editor_code = "print('Welcome to Lavencode')"
 
 tab1, tab2 = st.tabs(["📝 Code Editor", "📁 Upload File"])
 
 with tab1:
     st.write("Write or paste your Python code here:")
     
-    # FIX: Dynamic key (editor_counter) moolama state lock-ah udaikirom
+    # FIX: நிலையான கீ மற்றும் session_state வேல்யூவை பயன்படுத்துவதால் கோடு எங்கும் மறையாது!
     code_content = st_ace(
-        value=st.session_state.current_code,
+        value=st.session_state.editor_code,
         language="python",
         theme="monokai",
         height=250,
         font_size=14,
-        key=f"ace_editor_{st.session_state.editor_counter}"
+        key="ace_editor_stable"
     )
     
     st.write("") 
@@ -94,7 +94,9 @@ with tab1:
     with btn_col1:
         if st.button("▶️ Run Code"):
             if code_content.strip():
-                st.session_state.current_code = code_content
+                # நீங்க டைப் பண்ண கோடை செஷன்ல சேவ் பண்றோம் (இனி ரீசெட் ஆகாது)
+                st.session_state.editor_code = code_content
+                
                 f = io.StringIO()
                 with contextlib.redirect_stdout(f):
                     try:
@@ -106,7 +108,6 @@ with tab1:
                 
                 st.session_state.terminal_output = output if output.strip() else "Code executed successfully with no print output."
                 st.session_state.data = None  
-                st.session_state.editor_counter += 1  # Force refresh editor state
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
@@ -114,11 +115,12 @@ with tab1:
     with btn_col2:
         if st.button("🚀 Analyze Code"):
             if code_content.strip():
-                st.session_state.current_code = code_content
+                # நீங்க டைப் பண்ண கோடை இங்கேயும் செஷன்ல சேவ் பண்றோம்
+                st.session_state.editor_code = code_content
+                
                 st.session_state.data = analyze_code_text(code_content)
                 st.session_state.target_name = "Direct_Input.py"
                 st.session_state.terminal_output = None  
-                st.session_state.editor_counter += 1  # Force refresh editor state
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
