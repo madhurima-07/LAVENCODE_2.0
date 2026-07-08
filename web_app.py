@@ -91,6 +91,7 @@ tab1, tab2 = st.tabs(["📝 Code Editor", "📁 Upload File"])
 with tab1:
     st.write("Write or paste your Python code here:")
     
+    # FIX 1: st_ace ஓட அவுட்புட் மாறும்போது உடனே கேட்ச் பண்ண 'key' மேனேஜ்மென்ட்
     code_content = st_ace(
         value="def hello_world():\n    print('Welcome to Lavencode 2.0')",
         language="python",
@@ -115,6 +116,7 @@ with tab1:
     with btn_col2:
         if st.button("🚀 Analyze Code"):
             if code_content.strip():
+                # எடிட்டர்ல இருக்குற லைவ் கன்டென்ட்டை டைரக்டா அனலைசர்க்கு அனுப்புறோம்
                 st.session_state.data = analyze_code_text(code_content)
                 st.session_state.target_name = "Direct_Input.py"
                 st.rerun()
@@ -183,17 +185,30 @@ if data is not None:
         
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
-        # FIX: Changed 'text=' to 'txt=' to support all FPDF versions safely
+        # FIX 2: PDF எர்ரர் வராம இருக்க பக்கா சேஃப் மெத்தட் (output to string/bytes handle பண்றது)
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", size=12)
         for line in report_text.split("\n"):
             clean_line = line.replace("💜", "").replace("•", "-").replace("✨", "")
-            pdf.cell(200, 8, txt=clean_line, ln=1)
-        pdf_bytes = pdf.output(dest='S') if hasattr(pdf, 'output') and not isinstance(pdf.output(), bytes) else pdf.output()
+            # வெர்ஷன் இஷ்யூ வராம இருக்க 'txt' பொசிஷனல் ஆர்குமெண்ட்டா மாத்தியாச்சு
+            pdf.cell(200, 8, clean_line, ln=1)
+        
+        try:
+            # புதிய fpdf2 வெர்ஷன்களுக்கு byte output
+            pdf_output = pdf.output()
+            if isinstance(pdf_output, str):
+                pdf_bytes = pdf_output.encode('latin1')
+            else:
+                pdf_bytes = bytes(pdf_output)
+        except:
+            # பழைய fpdf வெர்ஷன்களுக்கு 
+            pdf_bytes = pdf.output(dest='S')
+            if isinstance(pdf_bytes, str):
+                pdf_bytes = pdf_bytes.encode('latin1')
         
         st.write("")
-        st.download_button(label="📥 Export PDF Report", data=bytes(pdf_bytes), file_name=f"{target_name}_AuditReport.pdf", mime="application/pdf")
+        st.download_button(label="📥 Export PDF Report", data=pdf_bytes, file_name=f"{target_name}_AuditReport.pdf", mime="application/pdf")
         
     with col_sug:
         st.subheader("💡 Bug Fix Suggestions")
