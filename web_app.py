@@ -191,11 +191,11 @@ if data is not None and st.session_state.terminal_output is None:
     st.subheader("📊 Performance Analytics")
     score_left = max(0, 100 - data['score'])
     
-    # Chart Color Dynamic Fix
+    # FIX: 'Passed Quality Score'-க்கு இப்போ சூப்பரான Light Blue (#38bdf8) கலர் செட் பண்ணியாச்சு!
     if data['score'] == 0:
         chart_colors = ['#e2e8f0', '#f43f5e']
     else:
-        chart_colors = ['#6366f1', '#f43f5e']
+        chart_colors = ['#38bdf8', '#f43f5e']
         
     fig = go.Figure(data=[go.Pie(
         labels=['Passed Quality Score', 'Flaws Detected Deductions'], 
