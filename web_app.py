@@ -38,7 +38,7 @@ st.markdown("""
     }
     .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(167, 139, 250, 0.4); }
     
-    /* SYSTEM AUDIT LOG TEXT BOX - Fixed with dark background and crisp neon green text */
+    /* SYSTEM AUDIT LOG TEXT BOX */
     div[data-testid="stTextArea"] textarea {
         background-color: #110c24 !important;
         color: #39ff14 !important;
@@ -49,10 +49,10 @@ st.markdown("""
         border-radius: 12px !important;
     }
     
-    /* PDF DOWNLOAD BUTTON - Fixed text visibility with deep contrast */
+    /* PDF DOWNLOAD BUTTON */
     div.stDownloadButton>button {
         background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%) !important;
-        color: #110c24 !important; /* Pure Dark font for absolute visibility */
+        color: #110c24 !important; 
         font-size: 16px !important;
         font-weight: 900 !important;
         border-radius: 12px !important;
@@ -108,14 +108,17 @@ with tab1:
         if st.button("▶️ Run Code"):
             if code_content.strip():
                 st.session_state.execution_status = "✨ Code executed successfully with zero runtime errors!"
+                st.rerun()
             else:
                 st.warning("Editor is empty! Write some code first.")
                 
     with btn_col2:
         if st.button("🚀 Analyze Code"):
             if code_content.strip():
+                # Correctly mapping the response and rerunning immediately
                 st.session_state.data = analyze_code_text(code_content)
                 st.session_state.target_name = "Direct_Input.py"
+                st.rerun()
             else:
                 st.warning("Editor is empty! Write some code first.")
 
@@ -133,6 +136,7 @@ with tab2:
         st.session_state.target_name = uploaded_file.name
         if os.path.exists(temp_path):
             os.remove(temp_path)
+        st.rerun()
 
 data = st.session_state.data
 target_name = st.session_state.target_name
