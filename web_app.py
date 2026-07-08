@@ -143,14 +143,10 @@ with tab1:
         if st.button("🚀 Analyze Code"):
             if st.session_state.editor_code.strip():
                 try:
-                    # FIX: அனலைஸ் பண்றதுக்கு முன்னாடி கோடுல ஏதாச்சும் Syntax தப்பு இருக்கான்னு கம்பைல் பண்ணி செக் பண்றோம்!
                     compile(st.session_state.editor_code, 'Direct_Input.py', 'exec')
-                    
-                    # தப்பு இல்லைனா வழக்கம் போல அனலைஸ் ஆகும்
                     st.session_state.data = analyze_code_text(st.session_state.editor_code)
                     st.session_state.target_name = "Direct_Input.py"
                 except SyntaxError as se:
-                    # FIX: தப்பு இருந்தா ஆட்டோமேட்டிக்கா ஸ்கோரைக் குறைச்சு, எர்ரரை பாக்ஸ்ல காட்டிடும்!
                     st.session_state.data = {
                         "score": 0,
                         "metrics": {"lines": len(st.session_state.editor_code.split('\n')), "functions": 0, "classes": 0},
@@ -195,15 +191,20 @@ if data is not None and st.session_state.terminal_output is None:
     st.subheader("📊 Performance Analytics")
     score_left = max(0, 100 - data['score'])
     
-    # Red-Green pie chart based on score
-    chart_colors = ['#6366f1', '#f43f5e'] if data['score'] > 0 else ['#f43f5e', '#e2e8f0']
+    # Chart Color Dynamic Fix
+    if data['score'] == 0:
+        chart_colors = ['#e2e8f0', '#f43f5e']
+    else:
+        chart_colors = ['#6366f1', '#f43f5e']
+        
     fig = go.Figure(data=[go.Pie(
         labels=['Passed Quality Score', 'Flaws Detected Deductions'], 
         values=[data['score'], score_left],
         hole=.55,
         marker=dict(colors=chart_colors, line=dict(color='#ffffff', width=2)),
         textinfo='percent',
-        textfont=dict(size=20, color="#1e1b4b")
+        textfont=dict(size=20, color="#1e1b4b"),
+        sort=False
     )])
     fig.update_layout(margin=dict(t=40, b=40, l=40, r=40), height=340, showlegend=True, paper_bgcolor='#ffffff', plot_bgcolor='#ffffff')
     st.plotly_chart(fig, use_container_width=True)
