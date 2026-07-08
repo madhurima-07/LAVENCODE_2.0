@@ -70,7 +70,6 @@ if 'data' not in st.session_state:
 if 'terminal_output' not in st.session_state:
     st.session_state.terminal_output = None
 if 'editor_code' not in st.session_state:
-    # முதன்முறை ஆப் ஓபன் ஆகும்போது மட்டும் இந்த டீஃபால்ட் கோடு இருக்கும்
     st.session_state.editor_code = "print('Welcome to Lavencode')"
 
 tab1, tab2 = st.tabs(["📝 Code Editor", "📁 Upload File"])
@@ -78,7 +77,6 @@ tab1, tab2 = st.tabs(["📝 Code Editor", "📁 Upload File"])
 with tab1:
     st.write("Write or paste your Python code here:")
     
-    # FIX: நிலையான கீ மற்றும் session_state வேல்யூவை பயன்படுத்துவதால் கோடு எங்கும் மறையாது!
     code_content = st_ace(
         value=st.session_state.editor_code,
         language="python",
@@ -88,19 +86,23 @@ with tab1:
         key="ace_editor_stable"
     )
     
+    # FIX: நீங்க எடிட்டர்ல கோடை மாற்றினால், பழைய அவுட்புட்டை உடனே கிளியர் செய்திடும் லாஜிக்
+    if code_content != st.session_state.editor_code:
+        st.session_state.editor_code = code_content
+        st.session_state.data = None
+        st.session_state.terminal_output = None
+        st.rerun()
+    
     st.write("") 
     btn_col1, btn_col2 = st.columns(2)
     
     with btn_col1:
         if st.button("▶️ Run Code"):
-            if code_content.strip():
-                # நீங்க டைப் பண்ண கோடை செஷன்ல சேவ் பண்றோம் (இனி ரீசெட் ஆகாது)
-                st.session_state.editor_code = code_content
-                
+            if st.session_state.editor_code.strip():
                 f = io.StringIO()
                 with contextlib.redirect_stdout(f):
                     try:
-                        safe_code = "import builtins\ndef mock_input(prompt=''): return '4'\nbuiltins.input = mock_input\n" + code_content
+                        safe_code = "import builtins\ndef mock_input(prompt=''): return '4'\nbuiltins.input = mock_input\n" + st.session_state.editor_code
                         exec(safe_code, {})
                         output = f.getvalue()
                     except Exception as e:
@@ -114,11 +116,8 @@ with tab1:
                 
     with btn_col2:
         if st.button("🚀 Analyze Code"):
-            if code_content.strip():
-                # நீங்க டைப் பண்ண கோடை இங்கேயும் செஷன்ல சேவ் பண்றோம்
-                st.session_state.editor_code = code_content
-                
-                st.session_state.data = analyze_code_text(code_content)
+            if st.session_state.editor_code.strip():
+                st.session_state.data = analyze_code_text(st.session_state.editor_code)
                 st.session_state.target_name = "Direct_Input.py"
                 st.session_state.terminal_output = None  
                 st.rerun()
@@ -145,6 +144,7 @@ with tab2:
 data = st.session_state.data
 target_name = st.session_state.target_name
 
+# இப்போ டேட்டா இருந்தா மட்டும்தான் அனாலிசிஸ் செக்ஷன் கீழே ஓபன் ஆகும்!
 if data is not None and st.session_state.terminal_output is None:
     st.write("")
     col1, col2, col3 = st.columns(3)
