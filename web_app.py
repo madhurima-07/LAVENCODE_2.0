@@ -95,7 +95,6 @@ with tab1:
         st.session_state.terminal_output = None
         st.rerun()
     
-    # FIX: கோடுக்குள்ள "input(" இருந்தா மட்டும்தான் இந்த இன்புட் பாக்ஸ் வெளில காட்டும்!
     if "input(" in code_content:
         st.write("")
         user_input_data = st.text_area(
@@ -134,7 +133,15 @@ with tab1:
                         output = f"Execution Error: {str(e)}"
                 
                 st.session_state.terminal_output = output if output.strip() else "Code executed successfully with no print output."
-                st.session_state.data = None  
+                
+                # FIX: ரன் பண்ணும்போதே பேக்-எண்ட்ல ஒரு பேசிக் அனாலிசிஸ் டேட்டாவை ரெடி பண்ணி லாக்ஸ்ல அவுட்புட் தெரிய வைக்கிறோம்!
+                st.session_state.data = {
+                    "score": 100,
+                    "metrics": {"lines": len(st.session_state.editor_code.split('\n')), "functions": 0, "classes": 0},
+                    "issues": ["Code executed manually by user."],
+                    "suggestions": ["✨ Code runs fine. Run AI Analysis for deep auditing!"]
+                }
+                st.session_state.target_name = "Direct_Input.py"
                 st.rerun()
             else:
                 st.warning("Editor is empty!")
@@ -169,7 +176,8 @@ with tab2:
 data = st.session_state.data
 target_name = st.session_state.target_name
 
-if data is not None and st.session_state.terminal_output is None:
+# இப்போ ரன் பண்ணாலும், அனலைஸ் பண்ணாலும் கீழ ரிப்போர்ட் செக்ஷன் ஓபன் ஆகும்
+if data is not None:
     st.write("")
     col1, col2, col3 = st.columns(3)
     with col1: st.metric(label="📊 Audit Score", value=f"{data['score']}/100")
@@ -196,10 +204,19 @@ if data is not None and st.session_state.terminal_output is None:
     
     with col_logs:
         st.subheader("📋 System Audit Logs")
-        report_text = f"LAVENCODE REPORT: {target_name}\nScore: {data['score']}/100\nLines: {data['metrics']['lines']}\n\nIssues Found:\n"
+        
+        # FIX: ரிப்போர்ட் டெக்ஸ்ட்க்குள்ள 'Terminal Output'-ஐயும் சேர்க்கிறோம்
+        report_text = f"LAVENCODE REPORT: {target_name}\nScore: {data['score']}/100\nLines: {data['metrics']['lines']}\n\n"
+        
+        if st.session_state.terminal_output is not None:
+            report_text += f"💻 Terminal Output:\n{st.session_state.terminal_output}\n\n"
+            
+        report_text += "Issues Found:\n"
         for issue in data["issues"]: report_text += f"- {issue}\n"
+        
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
+        # PDF Generation Fix
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", size=12)
