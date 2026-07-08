@@ -7,12 +7,6 @@ import sys
 import contextlib
 import os
 
-# FPDF-க்கு பதிலா ReportLab இம்போர்ட் பண்றோம்
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-
 st.set_page_config(page_title="Lavencode 2.0 Pro", page_icon="💜", layout="centered")
 
 # Custom UI Styling
@@ -223,61 +217,36 @@ if data is not None and st.session_state.terminal_output is None:
     
     with col_logs:
         st.subheader("📋 System Audit Logs")
-        report_text = f"LAVENCODE REPORT: {target_name}\nScore: {data['score']}/100\nLines: {data['metrics']['lines']}\n\nIssues Found:\n"
-        for issue in data["issues"]: report_text += f"- {issue}\n"
+        report_text = f"LAVENCODE AUDIT REPORT: {target_name}\n"
+        report_text += f"{'='*40}\n"
+        report_text += f"Audit Score : {data['score']}/100\n"
+        report_text += f"Total Lines : {data['metrics']['lines']}\n"
+        report_text += f"Functions   : {data['metrics']['functions']} | Classes: {data['metrics']['classes']}\n"
+        report_text += f"{'='*40}\n\n"
+        
+        report_text += "📝 ANALYZED CODE:\n"
+        report_text += f"{'-'*40}\n"
+        report_text += f"{st.session_state.editor_code}\n"
+        report_text += f"{'-'*40}\n\n"
+        
+        report_text += "📋 ISSUES DETECTED:\n"
+        for issue in data["issues"]: 
+            report_text += f"- {issue}\n"
+        report_text += "\n"
+        
+        report_text += "💡 SUGGESTIONS:\n"
+        for sug in data["suggestions"]: 
+            report_text += f"* {sug}\n"
+
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
-        # FIX: ReportLab வச்சு 100% கரக்ட் ஆகாத பியூர் பைனரி PDF உருவாக்குறோம்!
-        pdf_buffer = io.BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
-        story = []
-        
-        styles = getSampleStyleSheet()
-        # Custom styles safely handling fonts
-        title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=20, leading=24, textColor=colors.HexColor('#7c3aed'), alignment=1)
-        sub_style = ParagraphStyle('SubStyle', parent=styles['Normal'], fontSize=11, leading=15, textColor=colors.HexColor('#475569'))
-        code_style = ParagraphStyle('CodeStyle', parent=styles['Code'], fontSize=9, leading=12, textColor=colors.HexColor('#0f172a'))
-        body_style = ParagraphStyle('BodyStyle', parent=styles['Normal'], fontSize=10, leading=14, textColor=colors.HexColor('#1e293b'))
-
-        # Adding elements to the PDF Story
-        story.append(Paragraph("Lavencode 2.0 - Code Audit Report", title_style))
-        story.append(Spacer(1, 15))
-        
-        story.append(Paragraph(f"<b>Target File:</b> {target_name}", sub_style))
-        story.append(Paragraph(f"<b>Audit Score:</b> {data['score']}/100", sub_style))
-        story.append(Paragraph(f"<b>Total Lines:</b> {data['metrics']['lines']} | <b>Functions:</b> {data['metrics']['functions']} | <b>Classes:</b> {data['metrics']['classes']}", sub_style))
-        story.append(Spacer(1, 15))
-        
-        story.append(Paragraph("<b>📝 Code Analyzed:</b>", sub_style))
-        story.append(Spacer(1, 5))
-        for line in st.session_state.editor_code.split("\n"):
-            clean_line = line.replace(" ", "&nbsp;").replace("<", "&lt;").replace(">", "&gt;")
-            story.append(Paragraph(clean_line if clean_line.strip() else "&nbsp;", code_style))
-        story.append(Spacer(1, 15))
-        
-        story.append(Paragraph("<b>📋 Audit Logs & Issues:</b>", sub_style))
-        story.append(Spacer(1, 5))
-        for issue in data["issues"]:
-            clean_issue = issue.replace("❌", "[Error]").replace("⚠️", "[Warning]").replace("<", "&lt;").replace(">", "&gt;")
-            story.append(Paragraph(f"• {clean_issue}", body_style))
-        story.append(Spacer(1, 15))
-
-        story.append(Paragraph("<b>💡 Bug Fix Suggestions:</b>", sub_style))
-        story.append(Spacer(1, 5))
-        for sug in data["suggestions"]:
-            clean_sug = sug.replace("⚠️", "[Warning]").replace("✨", "").replace("<", "&lt;").replace(">", "&gt;")
-            story.append(Paragraph(f"* {clean_sug}", body_style))
-        
-        # Build Document
-        doc.build(story)
-        pdf_buffer.seek(0)
-        
         st.write("")
+        # FIX: எந்த எக்ஸ்ட்ரா மாடியூலும் இல்லாம பக்காவா டெக்ஸ்ட்டா மாத்தி டவுன்லோட் பண்றோம்!
         st.download_button(
-            label="📥 Export PDF Report", 
-            data=pdf_buffer, 
-            file_name=f"{target_name}_AuditReport.pdf", 
-            mime="application/pdf"
+            label="📥 Export Audit Report (.txt)", 
+            data=report_text, 
+            file_name=f"{target_name}_AuditReport.txt", 
+            mime="text/plain"
         )
         
     with col_sug:
