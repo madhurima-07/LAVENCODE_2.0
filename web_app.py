@@ -134,13 +134,8 @@ with tab1:
                 
                 st.session_state.terminal_output = output if output.strip() else "Code executed successfully with no print output."
                 
-                # FIX: ரன் பண்ணும்போதே பேக்-எண்ட்ல ஒரு பேசிக் அனாலிசிஸ் டேட்டாவை ரெடி பண்ணி லாக்ஸ்ல அவுட்புட் தெரிய வைக்கிறோம்!
-                st.session_state.data = {
-                    "score": 100,
-                    "metrics": {"lines": len(st.session_state.editor_code.split('\n')), "functions": 0, "classes": 0},
-                    "issues": ["Code executed manually by user."],
-                    "suggestions": ["✨ Code runs fine. Run AI Analysis for deep auditing!"]
-                }
+                # FIX: ரன் பண்ணும்போது அனாலிசிஸ் ரிப்போர்ட் வராத மாதிரி தடுத்துட்டோம்!
+                st.session_state.data = None  
                 st.session_state.target_name = "Direct_Input.py"
                 st.rerun()
             else:
@@ -149,6 +144,7 @@ with tab1:
     with btn_col2:
         if st.button("🚀 Analyze Code"):
             if st.session_state.editor_code.strip():
+                # FIX: அனலைஸ் பட்டன் அமுத்தும்போது மட்டும்தான் அனாலிசிஸ் நடக்கும்!
                 st.session_state.data = analyze_code_text(st.session_state.editor_code)
                 st.session_state.target_name = "Direct_Input.py"
                 st.session_state.terminal_output = None  
@@ -156,6 +152,7 @@ with tab1:
             else:
                 st.warning("Editor is empty!")
 
+    # ரன் பண்ணி அவுட்புட் வந்தா அது எடிட்டருக்கு கீழ உடனே காட்டும்!
     if st.session_state.terminal_output is not None:
         st.subheader("💻 Terminal Output")
         st.markdown(f"<div class='terminal-box'>{st.session_state.terminal_output}</div>", unsafe_allow_html=True)
@@ -176,8 +173,8 @@ with tab2:
 data = st.session_state.data
 target_name = st.session_state.target_name
 
-# இப்போ ரன் பண்ணாலும், அனலைஸ் பண்ணாலும் கீழ ரிப்போர்ட் செக்ஷன் ஓபன் ஆகும்
-if data is not None:
+# FIX: அனாலிசிஸ் டேட்டா இருந்தா மட்டும்தான் (அனலைஸ் பட்டன் பிரஸ் பண்ணா மட்டும்) கீழ்பகுதி ஓபன் ஆகும்!
+if data is not None and st.session_state.terminal_output is None:
     st.write("")
     col1, col2, col3 = st.columns(3)
     with col1: st.metric(label="📊 Audit Score", value=f"{data['score']}/100")
@@ -204,19 +201,10 @@ if data is not None:
     
     with col_logs:
         st.subheader("📋 System Audit Logs")
-        
-        # FIX: ரிப்போர்ட் டெக்ஸ்ட்க்குள்ள 'Terminal Output'-ஐயும் சேர்க்கிறோம்
-        report_text = f"LAVENCODE REPORT: {target_name}\nScore: {data['score']}/100\nLines: {data['metrics']['lines']}\n\n"
-        
-        if st.session_state.terminal_output is not None:
-            report_text += f"💻 Terminal Output:\n{st.session_state.terminal_output}\n\n"
-            
-        report_text += "Issues Found:\n"
+        report_text = f"LAVENCODE REPORT: {target_name}\nScore: {data['score']}/100\nLines: {data['metrics']['lines']}\n\nIssues Found:\n"
         for issue in data["issues"]: report_text += f"- {issue}\n"
-        
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
-        # PDF Generation Fix
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", size=12)
