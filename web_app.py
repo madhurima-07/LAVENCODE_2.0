@@ -2,11 +2,16 @@ import streamlit as st
 from analyzer import analyze_code_text, analyze_file
 from streamlit_ace import st_ace
 import plotly.graph_objects as go
-from fpdf import FPDF
 import io
 import sys
 import contextlib
 import os
+
+# FPDF-க்கு பதிலா ReportLab இம்போர்ட் பண்றோம்
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 st.set_page_config(page_title="Lavencode 2.0 Pro", page_icon="💜", layout="centered")
 
@@ -222,79 +227,55 @@ if data is not None and st.session_state.terminal_output is None:
         for issue in data["issues"]: report_text += f"- {issue}\n"
         st.text_area("Logs", value=report_text, height=220, label_visibility="collapsed", key="log_viewer_box")
         
-        # FIX: Unicode Encode Error-ஐ தடுக்க Safe Standard ASCII மாற்றுதல் லாஜிக்
-        pdf = FPDF()
-        pdf.add_page()
+        # FIX: ReportLab வச்சு 100% கரக்ட் ஆகாத பியூர் பைனரி PDF உருவாக்குறோம்!
+        pdf_buffer = io.BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+        story = []
         
-        # Title Header
-        pdf.set_font("Helvetica", style="B", size=18)
-        pdf.cell(200, 10, "Lavencode 2.0 - Code Audit Report", ln=1, align="C")
-        pdf.ln(5)
+        styles = getSampleStyleSheet()
+        # Custom styles safely handling fonts
+        title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=20, leading=24, textColor=colors.HexColor('#7c3aed'), alignment=1)
+        sub_style = ParagraphStyle('SubStyle', parent=styles['Normal'], fontSize=11, leading=15, textColor=colors.HexColor('#475569'))
+        code_style = ParagraphStyle('CodeStyle', parent=styles['Code'], fontSize=9, leading=12, textColor=colors.HexColor('#0f172a'))
+        body_style = ParagraphStyle('BodyStyle', parent=styles['Normal'], fontSize=10, leading=14, textColor=colors.HexColor('#1e293b'))
+
+        # Adding elements to the PDF Story
+        story.append(Paragraph("Lavencode 2.0 - Code Audit Report", title_style))
+        story.append(Spacer(1, 15))
         
-        # Meta Data
-        pdf.set_font("Helvetica", size=10)
-        pdf.cell(200, 6, f"Target File: {target_name}", ln=1)
-        pdf.cell(200, 6, f"Audit Score: {data['score']}/100", ln=1)
-        pdf.cell(200, 6, f"Total Lines: {data['metrics']['lines']} | Functions: {data['metrics']['functions']} | Classes: {data['metrics']['classes']}", ln=1)
-        pdf.ln(5)
+        story.append(Paragraph(f"<b>Target File:</b> {target_name}", sub_style))
+        story.append(Paragraph(f"<b>Audit Score:</b> {data['score']}/100", sub_style))
+        story.append(Paragraph(f"<b>Total Lines:</b> {data['metrics']['lines']} | <b>Functions:</b> {data['metrics']['functions']} | <b>Classes:</b> {data['metrics']['classes']}", sub_style))
+        story.append(Spacer(1, 15))
         
-        # Source Code Section
-        pdf.set_font("Helvetica", style="B", size=12)
-        pdf.cell(200, 8, "Code Analyzed:", ln=1)
-        pdf.set_font("Courier", size=9)
+        story.append(Paragraph("<b>📝 Code Analyzed:</b>", sub_style))
+        story.append(Spacer(1, 5))
         for line in st.session_state.editor_code.split("\n"):
-            # எமோஜி மற்றும் ஸ்பெஷல் கேரக்டர்களை PDF ஃபைலுக்குள் போகும் முன் சுத்தப்படுத்துகிறோம்
-            clean_code_line = line.replace("\t", "    ").encode('ascii', 'ignore').decode('ascii')
-            pdf.cell(200, 5, clean_code_line, ln=1)
-        pdf.ln(5)
+            clean_line = line.replace(" ", "&nbsp;").replace("<", "&lt;").replace(">", "&gt;")
+            story.append(Paragraph(clean_line if clean_line.strip() else "&nbsp;", code_style))
+        story.append(Spacer(1, 15))
         
-        # Issues Section
-        pdf.set_font("Helvetica", style="B", size=12)
-        pdf.cell(200, 8, "Audit Logs and Issues:", ln=1)
-        pdf.set_font("Helvetica", size=10)
-        for line in report_text.split("\n"):
-            if "LAVENCODE REPORT" in line or "Score:" in line or "Lines:" in line:
-                continue
-            clean_line = line.replace("💜", "").replace("•", "-").replace("✨", "").replace("❌", "[Error]").replace("⚠️", "[Warning]")
-            clean_line = clean_line.encode('ascii', 'ignore').decode('ascii')
-            pdf.cell(200, 6, clean_line, ln=1)
-        pdf.ln(5)
+        story.append(Paragraph("<b>📋 Audit Logs & Issues:</b>", sub_style))
+        story.append(Spacer(1, 5))
+        for issue in data["issues"]:
+            clean_issue = issue.replace("❌", "[Error]").replace("⚠️", "[Warning]").replace("<", "&lt;").replace(">", "&gt;")
+            story.append(Paragraph(f"• {clean_issue}", body_style))
+        story.append(Spacer(1, 15))
 
-        # Suggestions Section
-        pdf.set_font("Helvetica", style="B", size=12)
-        pdf.cell(200, 8, "Bug Fix Suggestions:", ln=1)
-        pdf.set_font("Helvetica", size=10)
+        story.append(Paragraph("<b>💡 Bug Fix Suggestions:</b>", sub_style))
+        story.append(Spacer(1, 5))
         for sug in data["suggestions"]:
-            clean_sug = sug.replace("⚠️", "[Warning]").replace("✨", "").encode('ascii', 'ignore').decode('ascii')
-            pdf.multi_cell(0, 6, f"* {clean_sug}")
-        pdf.ln(5)
-            
-        # Chart Image Injection
-        try:
-            img_bytes = fig.to_image(format="png", width=500, height=300)
-            pdf.set_font("Helvetica", style="B", size=12)
-            pdf.cell(200, 8, "Performance Chart Analytics:", ln=1)
-            with open("temp_chart.png", "wb") as img_f:
-                img_f.write(img_bytes)
-            pdf.image("temp_chart.png", x=15, w=130, h=78)
-            if os.path.exists("temp_chart.png"):
-                os.remove(temp_chart.png)
-        except Exception as chart_err:
-            pdf.set_font("Helvetica", style="I", size=10)
-            pdf.cell(200, 6, "[Chart image rendering requires 'pip install kaleido']", ln=1)
-
-        # FIX: பிடிஎஃப் அவுட்புட்டை 'output(dest='S')' லிருந்து மாற்றி நேரடி பைட்ஸ் அரேவாக மாற்றுதல்
-        try:
-            pdf_bytes = pdf.output()  # fpdf2 மற்றும் லேட்டஸ்ட் வெர்ஷன்களில் இது நேரடியாக bytes தரும்
-            if isinstance(pdf_bytes, str):
-                pdf_bytes = pdf_bytes.encode('latin1')
-        except:
-            pdf_bytes = bytes(pdf.output(dest='S'), 'latin1') if hasattr(pdf, 'output') else b""
-
+            clean_sug = sug.replace("⚠️", "[Warning]").replace("✨", "").replace("<", "&lt;").replace(">", "&gt;")
+            story.append(Paragraph(f"* {clean_sug}", body_style))
+        
+        # Build Document
+        doc.build(story)
+        pdf_buffer.seek(0)
+        
         st.write("")
         st.download_button(
             label="📥 Export PDF Report", 
-            data=pdf_bytes, 
+            data=pdf_buffer, 
             file_name=f"{target_name}_AuditReport.pdf", 
             mime="application/pdf"
         )
